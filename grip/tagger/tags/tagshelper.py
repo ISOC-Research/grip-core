@@ -166,8 +166,8 @@ class TagsHelper(object):
             # else if have some yes tags, then it's traceroute worthy
             return True, list(yes_tags)
         else:
-            # otherwise, it has only na tags or no tags, it's traceroute worthy
-            # note: it's not possible to have no tags, since there will be notags Tag which is a na tag itself
+            # otherwise, it has only na tags or no tags at all, thus it's traceroute worthy
+            # note: it's not possible to have no tags at all, since there will be the "notags" Tag which is a na tag itself
             return True, []
 
     def _load_all_tags(self):
