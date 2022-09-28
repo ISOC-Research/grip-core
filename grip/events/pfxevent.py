@@ -91,9 +91,7 @@ class PfxEvent:
         # convert tags in string format to Tag object
         if any(not isinstance(tag, Tag) for tag in tags):
             tags = {tagshelper.parse_tag(tag) for tag in tags}
-        # convert tags from list to set
-        if isinstance(tags, list):
-            tags = set(tags)
+        
         tags = {t for t in tags if t}  # remove none tags
 
         # parse measurements
@@ -134,7 +132,7 @@ class PfxEvent:
 
     def get_recurring_fingerprint(self):
         """
-        Extract fingerprint of the prefix event for detecting recurring prefix events. All prefix events that has the
+        Extract fingerprint of the prefix event for detecting recurring prefix events. All prefix events that have the
         same fingerprint within the past window (e.g. 24 hours) will be considered recurring.
         :return: fingerprint in string format
         """

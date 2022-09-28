@@ -171,7 +171,7 @@ class TransitionLocator:
             }
             )
 
-        for event in self.es_conn.search_generator(index="observatory-events-moas-*", query=query, limit=limit):
+        for event in self.es_conn.search_generator(index="observatory-v3-events-moas-*", query=query, limit=limit):
             assert (isinstance(event, Event))
             try:
                 is_transition = self.check_event_transition(event)

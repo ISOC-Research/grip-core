@@ -186,7 +186,7 @@ class SubmoasDetails(PfxEventDetails):
     def is_super_pfx_newcomer(self):
         if not self._newcomer_pfxs:
             return False
-        return list(self._newcomer_pfxs)[0] == self._super_pfx
+        return list(self._newcomer_pfxs)[-1] == self._super_pfx
 
     def extract_attackers_victims(self):
         """
