@@ -128,21 +128,34 @@ def query_in_range(start_ts, end_ts,
     if must_tags:
         query["query"]["bool"]["must"].append({
             "terms": {
-                "summary.tags": must_tags
+                "summary.tags.name": must_tags
             }
         })
+        '''
+        the code above checks if the event has at least one of the must_tags.
+        the code below check if the event has all of the must_tags:
+        for tag in must_tags:
+                query["query"]["bool"]["must"].append({
+                    "term": {
+                        "summary.tags.name": tag
+                    }
+                })
+        '''
 
     if must_not_tags:
-        query["query"]["bool"]["must_not"].append({
-            "terms": {
-                "summary.tags": must_not_tags
-            }
-        })
         query["query"]["bool"]["must_not"].append({
             "terms": {
                 "summary.tags.name": must_not_tags
             }
         })
+        '''
+        for tag in must_not_tags:
+                query["query"]["bool"]["must_not"].append({
+                    "term": {
+                        "summary.tags.name": tag
+                    }
+                })
+        '''
 
     if missing_inference:
         query["query"]["bool"]["must_not"].append({
@@ -425,7 +438,7 @@ def query_no_inference(max_ts=None):
                 },
                 "must_not": {
                     "exists": {
-                        "field": "inference"
+                        "field": "summary.inference_result.inferences"
                     }
                 }
             }
