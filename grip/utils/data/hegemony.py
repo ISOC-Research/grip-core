@@ -40,8 +40,7 @@ from future.utils import iteritems
 from requests import ConnectionError
 from scipy import stats, spatial
 
-
-def ceil_dt(dt):
+def floor_dt(dt):
     """ Currently, hegemony is calculated every 15 minute,
     You have to query with time 0, 15, 30, 45 minutes,
     otherwise, you will receive an empty response.
@@ -86,7 +85,7 @@ class HegemonyUtils:
         for path in paths:
             # remove consecutive ASes
             new_path = [v for i, v in enumerate(path) if i == 0 or v != path[i - 1]]
-            hege_paths.append([(asn, hegemony_scores[asn]) if asn in hegemony_scores else 0 for asn in new_path])
+            hege_paths.append([(asn, hegemony_scores[asn]) for asn in new_path])
 
         if not hege_paths:
             return 0.0, []
@@ -128,7 +127,7 @@ class HegemonyUtils:
             valley_cnt = 0
             for i in range(1, len(peak_idxs)):
                 minimum = sorted(hege_path, key=lambda x: x[1])[0][1]
-
+                
                 # calculate each depth between each peak and minimum
                 try:
                     depth_before_bottom = (hege_path[peak_idxs[i - 1]][1] - minimum) / float(
@@ -212,7 +211,7 @@ class HegemonyUtils:
         # hegemony paths
         hege_paths = []
         for origin_as in paths_by_origin.keys():
-            if origin_as not in hegemony:
+            if not hegemony[origin_as]:
                 logging.info("No local hegemony results of origin AS, %s" % origin_as)
                 continue
             for path in paths_by_origin[origin_as]:
@@ -237,16 +236,12 @@ class HegemonyUtils:
                 perOrgASN[origin_as]['peersPerASN'][peer_as] = []
             perOrgASN[origin_as]['peersPerASN'][peer_as].append(p_ip)
             # total
-            if p_ip not in perOrgASN[origin_as]['counter']['total']:
-                perOrgASN[origin_as]['counter']['total'][p_ip] = 0
-            perOrgASN[origin_as]['counter']['total'][p_ip] += 1
+            perOrgASN[origin_as]['counter']['total'][p_ip] = 1
             # asn
             for asn in path:
                 if asn not in perOrgASN[origin_as]['counter']['asn']:
                     perOrgASN[origin_as]['counter']['asn'][asn] = dict()
-                if p_ip not in perOrgASN[origin_as]['counter']['asn'][asn]:
-                    perOrgASN[origin_as]['counter']['asn'][asn][p_ip] = 0
-                perOrgASN[origin_as]['counter']['asn'][asn][p_ip] += 1
+                perOrgASN[origin_as]['counter']['asn'][asn][p_ip] = 1
             p_ip += 1
 
         alpha = 0.1
@@ -327,9 +322,14 @@ class HegemonyUtils:
         def _extract_data(data, subgraph_origins, target_origins):
             res_dict = {}
             for subgraph_origin in subgraph_origins:
+                # if the target origins were not specified, we return whatever
+                # data were provided from the API.
+                if not target_origins:
+                    res_dict[subgraph_origin] = data.get(subgraph_origin, {})
+                    continue
                 res_dict[subgraph_origin] = {}
-                for asnumer in target_origins:
-                    res_dict[subgraph_origin][asnumer] = data.get(subgraph_origin, {}).get(asnumer, 0)
+                for asnumber in target_origins:
+                    res_dict[subgraph_origin][asnumber] = data.get(subgraph_origin, {}).get(asnumber, 0)
             return res_dict
 
         res = {}
@@ -339,7 +339,7 @@ class HegemonyUtils:
 
         t = datetime.utcfromtimestamp(int(timestamp))
         query_time_str = datetime.strftime(
-            ceil_dt(t) - timedelta(hours=1),
+            floor_dt(t) - timedelta(hours=1),
             '%Y-%m-%dT%H:%M')
 
         if self.cache_ts != query_time_str:
@@ -392,8 +392,8 @@ class HegemonyUtils:
         subgraph_query_str = ",".join(uncached.keys())
         asns_query_str = ",".join(list(asns))
 
-        url = "https://ihr.iijlab.net/ihr/api/hegemony/?af=4&timebin={}&format=json&originasn={}&asn={}".format(
-            query_time_str, subgraph_query_str, asns_query_str
+        url = "https://ihr.iijlab.net/ihr/api/hegemony/?af=4&timebin__gte={}&timebin__lte={}&format=json&originasn={}&asn={}".format(
+            query_time_str+':00', query_time_str+':59', subgraph_query_str, asns_query_str
         )
         rsp_raw = ""
         try:
