@@ -338,7 +338,7 @@ class Tagger(object):
 
             if ts < start_ts and ts >= start_ts - self.window.window_size:
                 cache_files.append(file_name)
-                continue
+                
         logging.info("caching total of %d consumer files" % len(cache_files))
         for fn in cache_files:
             self.cache_consumer_file(fn)

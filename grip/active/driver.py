@@ -290,7 +290,7 @@ class ActiveProbingDriver:
             # retrieve event from ElasticSearch and parse it into Event object
             event = self.es_conn.get_event_by_id(index=event_ready_msg.es_index, event_id=event_ready_msg.es_id)
             if event is None:
-                logging.info("cannot retrieve event from {}".format(event_ready_msg.to_url()))
+                logging.info("cannot retrieve event: {}/{}".format(event_ready_msg.es_index, event_ready_msg.es_id))
                 self.kafka_helper.commit_offset()
                 continue
             # check if the event is too old for conducting traceroutes, threshold is defined in ACTIVE_MAX_TIME_DELTA

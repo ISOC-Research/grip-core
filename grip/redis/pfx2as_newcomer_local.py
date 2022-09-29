@@ -76,15 +76,16 @@ class Pfx2AsNewcomerLocal:
         if datafile:
             self.datafile = datafile
 
-    def _load_files_list(self):
+    def _load_files_list(self, recent_ts=0):
         # load all pfx-origin files in first
-        logging.info("Updating list of pfx-origins files")
+        logging.info(f'Updating list of pfx-origins files after {recent_ts}.')
 
         files = fs_generate_file_list(PATH)
 
         for f in files:
             timestamp = fs_get_timestamp_from_file_path(f)
-            self.pfx_origin_files[timestamp] = f
+            if timestamp > recent_ts:
+                self.pfx_origin_files[timestamp] = f
 
 
     def _init_data(self):
@@ -154,7 +155,14 @@ class Pfx2AsNewcomerLocal:
                 # load file list if not loaded yet
                 self._load_files_list()
                 self.sorted_file_ts = sorted(self.pfx_origin_files.keys())
-
+            else: 
+                # update file list if the current one is not up to date 
+                # with respect to timestamp   
+                most_recent_file_ts = self.sorted_file_ts[-1]
+                if most_recent_file_ts < timestamp:
+                    self._load_files_list(most_recent_file_ts)
+                    self.sorted_file_ts = sorted(self.pfx_origin_files.keys())
+            
             most_recent_ts = max([ts for ts in self.sorted_file_ts if ts < timestamp])
 
             # we need to load a new pfx_origins file

@@ -44,7 +44,7 @@ class EventSummary:
     - ases
     - tr_worthy
     - newcomers
-    - tags: names of the tags, values and other properties are ignored for briviety. see pfx event for detailed tags
+    - tags: names of the tags, values and other properties are ignored for brevity. see pfx event for detailed tags
     - inference_result (inferences, primary_inference)
     """
 

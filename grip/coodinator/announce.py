@@ -270,7 +270,7 @@ class Listener:
             shutdown["count"] += 1
             if shutdown["count"] > 3:
                 logging.warning("Caught %d signals, shutting down NOW" % shutdown["count"])
-            sys.exit(0)
+                sys.exit(0)
 
         signal.signal(signal.SIGTERM, _stop_handler)
         signal.signal(signal.SIGINT, _stop_handler)

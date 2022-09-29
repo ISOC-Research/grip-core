@@ -38,7 +38,7 @@ REDIS_AVAIL_SECONDS = 86400
 
 def get_recent_prefix_origins(prefix, view_ts, dataset):
     """
-    Lookup dataset to get the most recent origins of a given prefix.
+    Lookup dataset to get the most recent origins of a given prefix before view_ts.
 
     :param prefix: prefix in question
     :param view_ts: the maximum timestamp to lookup
@@ -48,9 +48,10 @@ def get_recent_prefix_origins(prefix, view_ts, dataset):
              - the timestamp of announcement
              - the most recent time in dataset
     """
-
+    # search for the most recent available data about the prefix before view_ts
     prefix_info, asn_info = dataset.lookup(prefix, max_ts=view_ts - 1, exact_match=True)
-    redis_ts = dataset.get_most_recent_timestamp(view_ts)
+    # search for the most recent time that redis was updated with data before view_ts 
+    redis_ts = dataset.get_most_recent_timestamp(view_ts - 1)
 
     if len(asn_info) == 0:
         # information about this prefix from redis at all
@@ -112,17 +113,21 @@ def get_previous_origins(
 
     assert (redis_recent_ts is not None)
 
-    if data_ts < view_ts - 300 and data_ts < redis_recent_ts - 300:
-        # the prefix origins were updated older than 5 minutes before the event
-        # also older than 5 minutes before the most recent redis update timestamp
-        # --> the prefix is withdrawn, and the information is up-to-date
-        # --> return all origins as newcomer, empty set of old_view_origins
-        return set(), OUTDATED
-
-    if view_ts - 300 > data_ts >= redis_recent_ts - 300:
-        # the prefix origins were updated older than 5 minutes before the event
-        # but not older than 5 minutes before the most recent redis update timestamp
-        # --> the prefix information could be outdated
+    """
+    We want to find the previous origins of a prefix with respect to view_ts , 
+    i.e., the origins of the prefix during the timebin [view_ts - 600, view_ts - 300].
+    If redis was updated at view_ts - 300, it is up to date with respect to the 
+    previous timebin. However, if it wasn't updated at this timestamp, it means we
+    are missing info about this specific timebin and redis is not up to date. 
+    """
+    if redis_recent_ts < view_ts - 300:
         OUTDATED = True
+    elif data_ts < view_ts - 300:
+        """
+        If redis is up to date and the data about the prefix were updated before view_ts - 300,
+        it means that during the previous timebin this prefix wasn't originated by any AS. 
+        Therefore, the prefix has no previous origins.
+        """
+        return set(), OUTDATED
 
     return old_origins_set, OUTDATED

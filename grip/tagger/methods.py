@@ -222,7 +222,7 @@ class TaggingMethodology:
 
         # Blacklists Tags
         TagBlacklistAsn = tagshelper.get_tag("blacklist-asn")
-        TagSpamhausAnsDrop = tagshelper.get_tag("spamhaus-asn-drop")
+        TagSpamhausAsnDrop = tagshelper.get_tag("spamhaus-asn-drop")
 
         ####
         # Private
@@ -342,7 +342,7 @@ class TaggingMethodology:
         # check spamhaus asn drop list
 
         if self.datasets["asndrop"] and self.datasets["asndrop"].any_on_list(list(new_origins_set)):
-            tags.append(TagSpamhausAnsDrop)
+            tags.append(TagSpamhausAsnDrop)
 
         return set(tags)
 
@@ -794,23 +794,45 @@ class TaggingMethodology:
         ####
         # 2. Check if the origins forms a chain of customer-provider, where for each link the customer has no other
         #    providers or peers. If the chain covers all origins, it is fine to announce prefixes for each other.
+        #    We define a chain as a seqeuence of ASes, e.g., A -> B -> C -> D (where -> stands for "is provider of") 
         ####
 
         is_single_chain = True
-        chain_set = set()
-        for i in range(0, len(origins_list) - 1):
-            if i in chain_set:
-                continue
-            for j in range(i, len(origins_list)):
-                if self.datasets["as_rank"].is_sole_provider(origins_list[i], origins_list[j]) or \
-                        self.datasets["as_rank"].is_sole_provider(origins_list[j], origins_list[i]):
-                    chain_set.update([i, j])
-                    break
-            if i not in chain_set:
-                # if after looping through all other ases, still not found a sole-provider or sole-customer, then
-                # the chain breaks and end loop now
+        has_provider = set()
+        has_customer = set()
+
+        for i in range(0, len(origins_list)):
+            for j in range(i + 1, len(origins_list)):
+                # we will refer to the origins as i and j for convenience (even though they are the indices)
+                # first we check if i and j are in a p-c relationship
+                # if we have already found that j has a sole provider, it is ensured that i is not their provider
+                if origins_list[j] not in has_provider and \
+                                self.datasets["as_rank"].is_sole_provider(origins_list[i], origins_list[j]):
+                    # if i has another customer, then we no longer have a chain
+                    if origins_list[i] in has_customer:
+                        is_single_chain = False
+                        break
+                    else:
+                        has_customer.add(origins_list[i])
+                        has_provider.add(origins_list[j])
+                # now we check if i and j are in a c-p relationship
+                elif origins_list[i] not in has_provider and \
+                                self.datasets["as_rank"].is_sole_provider(origins_list[j], origins_list[i]):
+                    if origins_list[j] in has_customer:
+                        is_single_chain = False
+                        break
+                    else:
+                        has_customer.add(origins_list[j])
+                        has_provider.add(origins_list[i])
+            # if i is isolated with respect to the other ASes, the chain is broken
+            if (origins_list[i] not in has_customer and origins_list[i] not in has_provider) or not is_single_chain:
                 is_single_chain = False
                 break
+        # until here we have ensured that every AS has one customer or one provider or both.
+        # we now check if we have a single chain (i.e., not multiple chains)
+        if is_single_chain and len(has_customer - has_provider) != 1:
+            is_single_chain = False
+
         # if all potential attackers and victims are part of the provider-customer chain, then
         if is_single_chain:
             tags.append(TagRelSingleUpstreamChain)

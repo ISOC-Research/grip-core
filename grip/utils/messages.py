@@ -55,11 +55,6 @@ class EventOnElasticMsg(Message):
         return " ".join(
             [self.sender, self.es_index, self.es_id, self.es_doc_type, str(self.tr_worthy), str(self.process_finished)])
 
-    def to_url(self):
-        return "http://clayface.caida.org:9200/{}/{}/{}".format(
-            self.es_index, self.es_doc_type, self.es_id
-        )
-
     @staticmethod
     def from_str(value):
         fields = value.split(" ")

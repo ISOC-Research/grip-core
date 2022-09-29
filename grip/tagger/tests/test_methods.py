@@ -112,7 +112,7 @@ class TestTaggingMethodology(TestCase):
 
         # blacklist asns
         TagBlacklistAsn = tagshelper.get_tag("blacklist-asn")
-        TagSpamhausAnsDrop = tagshelper.get_tag("spamhaus-asn-drop")
+        TagSpamhausAsnDrop = tagshelper.get_tag("spamhaus-asn-drop")
 
 
         tag=self.methods.tag_asns
@@ -170,7 +170,7 @@ class TestTaggingMethodology(TestCase):
                          {TagHasAsTrans})
 
         self.assertEqual(self.methods.tag_asns({11695, 1}, {1}), {TagBlacklistAsn})
-        self.assertEqual(self.methods.tag_asns({3396, 1}, {1}), {TagSpamhausAnsDrop})
+        self.assertEqual(self.methods.tag_asns({3396, 1}, {1}), {TagSpamhausAsnDrop})
 
     def test_tag_prefixes(self):
         TagIxpPrefix = tagshelper.get_tag("ixp-prefix")
