@@ -74,8 +74,8 @@ class InferenceCollector:
 
     def _init_kafka_consumer(self, event_type):
         """
-        Initilaize kafka consumer to listen to messages from the components before inference engine. The following
-        two component will pass message to inference engine:
+        Initialize kafka consumer to listen to messages from the components before inference engine. The following
+        two components will pass message to inference engine:
         - tagger: after tagging, the tagger will commit the message to ES, and send a message here to do inference
         - collector: after the active probing results are collected, the active probing collector will send a message
 
@@ -95,7 +95,7 @@ class InferenceCollector:
 
     def _update_external_data(self, event, to_query_asrank, to_query_hegemony):
         """
-        Query data data sources and put the data into the event object
+        Query data sources and put the data into the event object
         :param event:
         :param to_query_asrank:
         :param to_query_hegemony:
@@ -184,6 +184,7 @@ class InferenceCollector:
             if event is None:
                 logging.warning(
                     "Failed to retrieve event: {}/{}".format(event_ready_msg.es_index, event_ready_msg.es_id))
+                self.kafka_helper.commit_offset()
                 continue
 
             # conduct inference, the event object will be updated by the function

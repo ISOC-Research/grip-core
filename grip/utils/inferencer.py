@@ -57,7 +57,7 @@ class InferenceRunner:
         :return:
         """
 
-        for event in self.esconn.search_generator(index="observatory-events-*", query=query_no_inference()):
+        for event in self.esconn.search_generator(index="observatory-v3-events-*", query=query_no_inference()):
             assert (isinstance(event, Event))
             event = self.collector.infer_event(event, to_query_hegemony=False)
             self.esconn.index_event(event, debug=self.debug)

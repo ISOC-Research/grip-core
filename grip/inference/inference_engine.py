@@ -697,7 +697,7 @@ class InferenceEngine:
                 inferences.append(
                     Inference(
                         inference_id="misconfig-fatfinger-asn",
-                        explanation="The ASNs of the potential attacker and the potential victim are "
+                        explanation="The ASNs of the potential attacker and the potential victim are not "
                                     "siblings/friends and also have small edit distance.",
                         suspicion_level=20,
                         confidence=50,
@@ -883,7 +883,7 @@ class InferenceEngine:
             inferences.append(
                 Inference(
                     inference_id="long-prefix",
-                    explanation="very long prefix (longer than /32) does not attack much traffic and are likely to be triggered by "
+                    explanation="very long prefix (longer than /24) does not attack much traffic and are likely to be triggered by "
                                 "normal traffic engineering",
                     suspicion_level=10,
                     confidence=90,

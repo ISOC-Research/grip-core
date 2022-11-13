@@ -42,7 +42,7 @@ class Inference:
     - inference_id: an unique identifier for the inference
     - explanation: the description of the inference in string (not intended for user consumption)
     - suspicion_level: (optional) an integer between 0-100 representing how suspicious the event is
-    - confidence: (optional) how confidence our system is about the inference (or suspicion_level -- FIXME: we still have to decide)
+    - confidence: (optional) how confident our system is about the inference (or suspicion_level -- FIXME: we still have to decide)
     - labels: (optional) labels that can be used for grouping inferences (e.g., by category), represented as a list of strings
     - pfx_event_ids: (optional) list of IDs of prefix events that have this inference
 
@@ -78,20 +78,18 @@ class Inference:
         2. same confidence but has lower suspicion_level
         """
         assert isinstance(other, Inference)
-        if not self.confidence:
-            # if itself doesn't have a confidence level, it's always less than the other
-            return True
 
         less_than = False
 
-        if self.confidence < other.confidence:
+        if self.confidence < other.confidence or (self.confidence == 0 and other.confidence != 0):            
             # lower confidence -> lower ranking
             less_than = True
         elif self.confidence == other.confidence:
             # both have the same confidence level, now compare the suspicion levels
             # lower suspicion_level -> lower ranking
-            less_than = self.suspicion_level < other.suspicion_level
-
+            if (self.suspicion_level < other.suspicion_level) or (self.suspicion_level == 0 and other.suspicion_level != 0):
+                less_than = True
+                
         return less_than
 
     def __hash__(self):

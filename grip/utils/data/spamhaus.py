@@ -196,12 +196,6 @@ class AsnDrop:
                 self._last_modified = datetime.datetime.strptime(record["last_modified"], "%Y-%m-%dT%H:%M:%S")
                 self._expires = datetime.datetime.strptime(record["expires"], "%Y-%m-%dT%H:%M:%S")
 
-                if ts < self._last_modified:
-                    # if the last-modified timestamp is still later than the current timestamp
-                    # we need to go back one day and retry
-                    temp_ts = temp_ts - datetime.timedelta(days=1)
-                    retry = retry - 1
-                    continue
                 return
             except NotFoundError:
                 # data not found, try one day earlier

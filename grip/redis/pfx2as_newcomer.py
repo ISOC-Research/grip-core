@@ -164,7 +164,7 @@ class Pfx2AsNewcomer:
             with wandio.open(path) as fh:
                 for line in fh:
                     # 1476104400|115.116.0.0/16|4755|4755|STABLE
-                    timestamp, prefix, old_asn, new_asn, label = line.strip().split("|")
+                    timestamp, prefix, old_asns, new_asns, label = line.strip().split("|")
                     timestamp = int(timestamp)
                     if file_timestamp == 0:
                         file_timestamp = timestamp
@@ -182,12 +182,13 @@ class Pfx2AsNewcomer:
                     # convert the ip to a binary string
                     bin_pfx = self.rh.get_bin_pfx(prefix)
                     pipe.zadd("%s:%s" % (REDIS_P2A_PFX, bin_pfx), timestamp,
-                              "%x:%s" % (int(timestamp / TIME_GRANULARITY), str(new_asn)))
+                              "%x:%s" % (int(timestamp / TIME_GRANULARITY), str(new_asns)))
 
                     # save as2pfx data into dictionary
-                    if new_asn not in as2pfx_dict:
-                        as2pfx_dict[new_asn] = set()
-                    as2pfx_dict[new_asn].add(prefix)
+                    for new_asn in new_asns.split():
+                        if new_asn not in as2pfx_dict:
+                            as2pfx_dict[new_asn] = set()
+                        as2pfx_dict[new_asn].add(prefix)
 
             # loop through as2pfx_dict and write them into database
             for asn in as2pfx_dict:

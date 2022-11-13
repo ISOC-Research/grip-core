@@ -111,7 +111,7 @@ class Pfx2AsNewcomerLocal:
             with wandio.open(path) as fh:
                 for line in fh:
                     # 1476104400|115.116.0.0/16|4755|4755|STABLE
-                    timestamp, prefix, old_asn, new_asn, label = line.strip().split("|")
+                    timestamp, prefix, old_asns, new_asns, label = line.strip().split("|")
                     timestamp = int(timestamp)
                     if self.file_timestamp == 0:
                         self.file_timestamp = timestamp
@@ -126,12 +126,13 @@ class Pfx2AsNewcomerLocal:
                     # convert the ip to a binary string
                     if not self.exact_match:
                         self.rtree.add(prefix)
-                    self.pfx2as_dict[prefix] = new_asn
+                    self.pfx2as_dict[prefix] = new_asns
 
                     # save as2pfx data into dictionary
-                    if new_asn not in self.as2pfx_dict:
-                        self.as2pfx_dict[new_asn] = set()
-                    self.as2pfx_dict[new_asn].add(prefix)
+                    for new_asn in new_asns.split():
+                        if new_asn not in self.as2pfx_dict:
+                            self.as2pfx_dict[new_asn] = set()
+                        self.as2pfx_dict[new_asn].add(prefix)
 
         except IOError as e:
             logging.error("Could not read pfx-origin file '%s'" % path)
