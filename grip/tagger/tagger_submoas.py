@@ -121,6 +121,7 @@ class SubMoasTagger(Tagger):
                 ts=pfxevent.view_ts,
                 paths=details.get_sub_aspaths(),
             ),
+            self.methodology.tag_end_of_paths(details.get_sub_aspaths()),
             self.methodology.tag_submoas(details),
         )
 

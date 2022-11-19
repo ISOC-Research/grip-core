@@ -33,6 +33,8 @@ import grip.events.event
 import grip.events.pfxevent
 from grip.events.details_submoas import SubmoasDetails
 from .inference import Inference
+from grip.utils.data.elastic import ElasticConn
+from grip.utils.data.elastic_queries import query_in_range, query_no_inference, query_by_tags_ps, query_by_tags_edges_ps
 
 # define labels to use here to avoid misspell labels for inferences
 # TODO: reassign labels for proper search capabilities
@@ -62,14 +64,44 @@ DEFAULT_NOT_WORTHY_INFERENCE = Inference(
     labels=[LABEL_TRACEROUTE]
 )
 
+PS_01_INFERENCE = Inference(
+                            inference_id="PS-EVENT-01",
+                            explanation="this is a suspicious event PS case 1.",
+                            suspicion_level=80,
+                            confidence=80,
+                            labels=[LABEL_SUSPICIOUS]
+                        )
 
+PS_02_INFERENCE = Inference(
+                            inference_id="PS-EVENT-02",
+                            explanation="this is a suspicious event PS case 2.",
+                            suspicion_level=80,
+                            confidence=80,
+                            labels=[LABEL_SUSPICIOUS]
+                        )
+
+PS_03_INFERENCE = Inference(
+                            inference_id="PS-EVENT-03",
+                            explanation="this is a suspicious event PS case 3.",
+                            suspicion_level=80,
+                            confidence=80,
+                            labels=[LABEL_SUSPICIOUS]
+                        )
+
+PS_04_INFERENCE = Inference(
+                            inference_id="PS-EVENT-04",
+                            explanation="this is a suspicious event PS case 4.",
+                            suspicion_level=80,
+                            confidence=80,
+                            labels=[LABEL_SUSPICIOUS]
+                        )
 class InferenceEngine:
     """
     The InferenceEngine contains logic that processes information from a prefix event and produces inferences.
     """
 
     def __init__(self):
-        pass
+        self.esconn = ElasticConn()
 
     def infer_on_event(self, event):
         """
@@ -153,6 +185,10 @@ class InferenceEngine:
             if pfx_event.event_type in ["submoas", "moas"]:
                 pfx_event.add_inferences(self._infer_all_newcomers(pfx_event))
 
+            # PS threat model
+            if pfx_event.event_type in ["submoas", "defcon", "edges"]:
+                pfx_event.add_inferences(self._infer_ps(pfx_event))
+
             # SubMOAS where both prefixes appeared within the 5-min bin.
             # This is covered by all-newcomers tag
 
@@ -185,6 +221,16 @@ class InferenceEngine:
                 pfx_event.remove_inferences({DEFAULT_WORTHY_INFERENCE, DEFAULT_NOT_WORTHY_INFERENCE})
 
         event.summary.update()
+
+    
+    def update_event_inferences(self, event, pfx_event, inferences):
+        """
+        Update inferences of event due to cross-check between events
+        """
+        pfx_event.add_inferences(inferences)
+        pfx_event.remove_inferences({DEFAULT_WORTHY_INFERENCE, DEFAULT_NOT_WORTHY_INFERENCE})
+        event.summary.update()
+        self.es_conn.index_event(event, index=self.es_conn.infer_index_name_by_id(event.event_id), update=True)
 
     #######################
     #######################
@@ -976,4 +1022,68 @@ class InferenceEngine:
                 )
             )
 
+        return inferences
+
+    #################
+    ### PS Model ###
+    #################
+    def _infer_ps(self, pfx_event):
+        inferences = []
+        prefix = pfx_event.details.get_prefix_of_interest()
+        if pfx_event.type == "edges":
+            if not pfx_event.has_tag("new-edge-connected-to-Tier-1"):
+                return inferences
+            tags = ["single-Tier-1-upstream-on-subpaths-2-hops", "single-Tier-1-upstream-on-subpaths-1-hop"] 
+            ases = set(pfx_event.details.get_ases())
+            pfx_event_ts = pfx_event.view_ts
+            for event_type in ["defcon", "submoas"]:
+                for event in self.esconn.search_generator(index=f'observatory-v3-events-{event_type}-*', query=query_by_tags_ps(tags, prefix, pfx_event_ts)):
+                        for pfx_event_ins in event.pfx_events:
+                            if pfx_event_ins.details.get_prefix_of_interest() == prefix:
+                                if pfx_event_ins.has_tag('single-Tier-1-upstream-on-subpaths-2-hops'):
+                                    last_ases = set(map(int, pfx_event_ins.details.get_sub_aspaths()[0][-3:-1]))
+                                    if ases == last_ases :
+                                        if event_type == "defcon":
+                                            inferences.append(PS_02_INFERENCE)
+                                        elif event_type == "submoas":
+                                            if pfx_event_ins.has_tag('all-siblings'):
+                                                inferences.append(PS_04_INFERENCE)
+                                elif pfx_event_ins.has_tag('single-Tier-1-upstream-on-subpaths-1-hop'):
+                                    last_ases = set(map(int, pfx_event_ins.details.get_sub_aspaths()[0][-2:]))
+                                    if last_ases == ases:
+                                        if event_type == "submoas":
+                                            inferences.append(PS_01_INFERENCE)
+                                        else:
+                                            inferences.append(PS_03_INFERENCE)
+                                if inferences:
+                                    self.update_event_inferences(event, pfx_event_ins, inferences)    
+                                break
+        elif pfx_event.type == "submoas" or pfx_event.type == "defcon":       
+            if (not pfx_event.has_tag("single-Tier-1-upstream-on-subpaths-2-hops")) and (not pfx_event.has_tag("single-Tier-1-upstream-on-subpaths-1-hop")):
+                return inferences
+            tag = "new-edge-connected-to-Tier-1"
+            event_case = None
+            if pfx_event.has_tag("single-Tier-1-upstream-on-subpaths-1-hop"):
+                ases = set(map(int, pfx_event_ins.details.get_sub_aspaths()[0][-2:]))
+                event_case = True
+            elif pfx_event.has_tag("single-Tier-1-upstream-on-subpaths-2-hops"):                    
+                ases = set(map(int, pfx_event_ins.details.get_sub_aspaths()[0][-3:-1]))
+                event_case = False            
+            for event in self.esconn.search_generator(index=f'observatory-v3-events-edges-*', query=query_by_tags_edges_ps(tag, prefix, ases, pfx_event_ts)):
+                for pfx_event_ins in event.pfx_events:
+                    if pfx_event_ins.details.get_prefix_of_interest() == prefix:
+                        if pfx_event.type == "submoas":
+                            if event_case:
+                                inferences.append(PS_01_INFERENCE)
+                            else:
+                                if pfx_event.has_tag("all-siblings"):
+                                    inferences.append(PS_04_INFERENCE)
+                        elif pfx_event.type == "defcon":
+                            if event_case:
+                                inferences.append(PS_03_INFERENCE)
+                            else:
+                                inferences.append(PS_02_INFERENCE)
+                        if inferences:
+                                self.update_event_inferences(event, pfx_event_ins, inferences)
+                        break
         return inferences

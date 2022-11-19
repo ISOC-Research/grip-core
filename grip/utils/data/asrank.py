@@ -288,7 +288,7 @@ class AsRankUtils:
         if self.cache[asn] is None:
             return None
 
-        return self.cache[asn]["asnDegree"]
+        return self.cache[asn].get("asnDegree", None)
 
     def is_sole_provider(self, asn_pro, asn_cust):
         """
@@ -486,6 +486,21 @@ class AsRankUtils:
             res[asn] = self.cache.get(asn, None)
         return res
 
+    def get_rank_for_asns(self, asn_lst):
+        """
+        Retrieve ranks for asns.
+        :param asn_lst: list of asns
+        :return: list of ranks
+        """
+        self._query_asrank_for_asns(asn_lst)
+
+        res = {}
+        for asn in asn_lst:
+            if self.cache[asn] is not None:
+                res[asn] = self.cache[asn].get('rank', None)
+            else:
+                res[asn]  = None
+        return res
 
 class TestAsRank(unittest.TestCase):
     """

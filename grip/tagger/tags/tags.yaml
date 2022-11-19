@@ -104,6 +104,9 @@ path:
   oldcomer-path-prepending:
     comments: []
     definition: "some old comer does path prepending"
+  new-edge-connected-to-Tier-1:
+    comments: ["edges only"]
+    definition: "the new edge is between a Tier 1 ISP and a non-Tier 1 AS"
   new-bidirectional:
     comments: ["edges only"]
     definition: "new edge"
@@ -143,6 +146,12 @@ path:
   sub-path-equal:
     comments: ["defcon"]
     definition: "the (common part of) paths toward the sub-prefix are the same length as (the common part of) paths to the super-prefix"
+  single-Tier-1-upstream-on-subpaths-2-hops:
+    comments: ["submoas", "defcon"]
+    definition: "the (common part of) paths toward the sub-prefix ends in the sequence Tier 1 ISP - Provider - Origin"
+  single-Tier-1-upstream-on-subpaths-1-hop:
+    comments: ["submoas", "defcon"]
+    definition: "the (common part of) paths toward the sub-prefix ends in the sequence Tier 1 ISP - Origin"
 ####
 # Fat-finger mistakes
 ####
