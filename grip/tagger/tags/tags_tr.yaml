@@ -183,7 +183,7 @@ tr_na:
     explain: ""
   - tags: [single-Tier-1-upstream-on-subpaths-2-hops]
     explain: ""
-  - tags: [single-Tier-1--upstream-on-subpaths-1-hop]
+  - tags: [single-Tier-1-upstream-on-subpaths-1-hop]
     explain: ""
 
   - tags: [all-newcomers-next-to-an-oldcomer]
