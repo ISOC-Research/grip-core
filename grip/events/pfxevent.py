@@ -210,7 +210,7 @@ class PfxEvent:
 
     def remove_inferences(self, inferences):
         """
-        Add the given set of inferences into the current prefix event
+        Remove the given set of inferences from the current prefix event
         """
         if not inferences:
             return

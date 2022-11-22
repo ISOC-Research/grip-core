@@ -181,6 +181,10 @@ tr_na:
     explain: ""
   - tags: [newcomer-more-specific]
     explain: ""
+  - tags: [single-Tier-1-upstream-on-subpaths-2-hops]
+    explain: ""
+  - tags: [single-Tier-1--upstream-on-subpaths-1-hop]
+    explain: ""
 
   - tags: [all-newcomers-next-to-an-oldcomer]
     explain: ""
@@ -205,6 +209,8 @@ tr_na:
   - tags: [no-new-edge-at-origin]
     explain: ""
   - tags: [all-new-edge-at-collectors]
+    explain: ""
+  - tags: [new-edge-connected-to-Tier-1]
     explain: ""
   - tags: [skipped-pfx-event]
     explain: ""

@@ -280,7 +280,7 @@ def query_closest_finished_event(pfxevent):
 
 def query_by_tags(tags):
     tag_terms = [
-        {"term": {"tags": tag}}
+        {"term": {"summary.tags.name": tag}}
         for tag in tags
     ]
     query = {
@@ -295,9 +295,99 @@ def query_by_tags(tags):
             "view_ts": {"order": "desc"}
         }]
     }
+    
+    return query
+
+
+def query_by_tags_ps(tags, prefix, view_ts):
+    time_query = {
+            "range": {
+                "view_ts": {
+                    "gte": view_ts - 2*300,
+                    "lte": view_ts + 2*300
+                }
+            }
+        }
+
+    tag_terms = [
+        {"term": {"summary.tags.name": tag}}
+        for tag in tags
+    ]
+
+    prefix_query = {
+        "term": {
+            "summary.prefixes": prefix
+        }
+    }
+
+    query = {
+        "size": 100,
+        "query": {
+            "bool": {
+                "should": tag_terms,
+                "minimum_should_match": 1,
+                "must": [time_query, prefix_query]
+            }
+        },
+        "sort": [{
+            "view_ts": {"order": "desc"}
+        }]
+    }
 
     return query
 
+def query_by_tags_edges_ps(tag, prefix, ases, view_ts):
+    time_query = {
+            "range": {
+                "view_ts": {
+                    "gte": view_ts - 2*300,
+                    "lte": view_ts + 2*300
+                }
+            }
+        }
+
+    edges_query = [
+        {
+            "wildcard": {
+                "id": f'*-{ases[0]}_{ases[1]}'
+            }
+        },
+        {
+            "wildcard": {
+                "id": f'*-{ases[1]}_{ases[0]}'
+            }
+        }
+    ]
+
+    prefix_query = {
+        "term": {
+            "summary.prefixes": prefix
+        }
+    }
+
+    query = {
+        "size": 100,
+        "query": {
+            "bool": {
+                "should": edges_query,
+                "minimum_should_match": 1,
+                "must": [
+                    time_query,
+                    prefix_query,
+                    {
+                        "match": {
+                            "summary.tags.name": tag
+                        }
+                    }
+                ]
+            }
+        },
+        "sort": [{
+            "view_ts": {"order": "desc"}
+        }]
+    }
+
+    return query
 
 def query_missing_traceroutes(min_ts=None):
     query = {

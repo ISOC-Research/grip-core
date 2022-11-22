@@ -72,12 +72,4 @@ class InferenceResult:
 
     @staticmethod
     def from_dict(inference_dict):
-        new_dict = {}
-        try:
-            for field in ['inferences']:
-                new_dict[field] = inference_dict.get(field, None)
-        except KeyError:
-            # it's ok/normal if the deprecated keys are not in
-            pass
-
-        return InferenceResult(**new_dict)
+        return InferenceResult(inference_dict.get('inferences', []))

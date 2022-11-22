@@ -241,11 +241,12 @@ class Pfx2AsHistorical:
                         # if the two ranges are continuous
                         t1, t2, asns_str = toadd.pop()
                         if asns_str == asns:
-                            # the previouse origins are the same as the current one
+                            # the previous origins are the same as the current one
                             toadd.append((t1, end_ts, asns_str))
                         else:
                             # push it right back
                             toadd.append((t1, t2, asns_str))
+                            toadd.append((start_ts, end_ts, asns))
                     else:
                         toadd.append((start_ts, end_ts, asns))
                 prev_ts = end_ts

@@ -80,6 +80,25 @@ class TaggingMethodology:
             self.tags_cache = {}
             self.current_ts = view_ts
 
+    def asn_is_Tier1(self, asn_lst):
+        """
+        Check if the ASes are Tier 1 or not.
+        :param asn_lst: list of ASNs
+        :return: dictionary with keys: ASNs, and values: True if they are Tier 1 or False otherwise
+        """
+        as_ranks = self.datasets["as_rank"].get_rank_for_asns(asn_lst)
+        degrees = {}
+        res = {}
+        for asn in asn_lst:
+            degrees[asn] = self.datasets["as_rank"].get_degree(asn)
+            
+        for asn, rank in as_ranks.items():
+            if rank is not None and rank < 30 and degrees[asn] is not None and degrees[asn]['provider'] == 0:
+                res[asn] = True
+            else:
+                res[asn] = False
+        return res
+
     def tag_newcomer_origins(self, current_origins_set, previous_origins_set):
         """
         Check if there are newcomers in this moas event. The input origins sets may contain
@@ -1066,6 +1085,33 @@ class TaggingMethodology:
 
         return tags
 
+    # USED BY: submoas, defcon
+    def tag_end_of_paths(self, sub_aspaths):
+        """
+        Add tags related to common end of paths toward subprefix
+        :param sub_aspaths: list of aspaths
+        :return tags: list of tags
+        """
+
+        tags = []
+        TagSingleTier1UpstreamOnSubpaths2Hops = tagshelper.get_tag("single-Tier-1-upstream-on-subpaths-2-hops")
+        TagSingleTier1UpstreamOnSubpaths1Hop = tagshelper.get_tag("single-Tier-1-upstream-on-subpaths-1-hop")
+
+        sub_prefix_common_hops = find_common_hops(sub_aspaths)
+
+        # check if common path ends in Tier 1-Provider-origin
+        if len(sub_prefix_common_hops) >= 3:
+            tier1_res = self.asn_is_Tier1([sub_prefix_common_hops[-3], sub_prefix_common_hops[-2]])
+            if tier1_res[sub_prefix_common_hops[-3]] and not tier1_res[sub_prefix_common_hops[-2]]:
+                tags.append(TagSingleTier1UpstreamOnSubpaths2Hops)
+        
+        if len(sub_prefix_common_hops) >= 2:
+            tier1_res = self.asn_is_Tier1([sub_prefix_common_hops[-2], sub_prefix_common_hops[-1]])
+            if tier1_res[sub_prefix_common_hops[-2]] and not tier1_res[sub_prefix_common_hops[-1]]:
+                tags.append(TagSingleTier1UpstreamOnSubpaths1Hop)
+        
+        return tags
+
     # USED_BY: all
     def tag_notags(self, all_tags):
         """
@@ -1189,6 +1235,7 @@ class TaggingMethodology:
         TagAllNewEdgeAtOrigin = tagshelper.get_tag("all-new-edge-at-origin")
         TagNoNewEdgeAtOrigin = tagshelper.get_tag("no-new-edge-at-origin")
         TagAllNewEdgeAtCollectors = tagshelper.get_tag("all-new-edge-at-collectors")
+        TagNewEdgeConnectedToTier1 = tagshelper.get_tag("new-edge-connected-to-Tier-1")
 
         ####
         # cache-able tags
@@ -1230,7 +1277,14 @@ class TaggingMethodology:
                 if comm_ixps and len(comm_ixps) > 0:
                     tags.append(TagIxpColocated)
                     to_cache.append(TagIxpColocated)
-                self.tags_cache["tag_edges"][edgeid] = to_cache
+            
+            # Check if the new edge is between a Tier 1 ISP and Non-Tier 1 AS
+            tier1_res = self.asn_is_Tier1([as1, as2])
+            if sum(tier1_res.values()) == 1:
+                tags.append(TagNewEdgeConnectedToTier1)
+                to_cache.append(TagNewEdgeConnectedToTier1)
+            
+            self.tags_cache["tag_edges"][edgeid] = to_cache 
 
         ####
         # non-cache-able tags
